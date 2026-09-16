@@ -1,153 +1,222 @@
 # Personal Workspace
 
-A local-first, dark, developer-oriented documentation editor — inspired by the Eraser.io workflow, with no AI, no account, and no cloud. Built with React, TypeScript, Tiptap/ProseMirror, and a small local Node.js server that reads/writes the workspace folder on your machine.
+**A local-first, dark-themed, developer-style documentation editor — no AI, no account, no cloud.**
 
-## Run it
+Personal Workspace is a self-hosted note/documentation app inspired by the Eraser.io writing experience. It pairs a React + TypeScript + Tiptap (ProseMirror) rich-text editor with a small Node.js server that reads and writes a real folder on your own machine — so your notes live as a plain `workspace.json` file on disk, not in someone else's database.
+
+---
+
+## Highlights
+
+- 🖊️ **Full-featured rich-text editor** — headings, text formatting, code blocks, tables, task lists, images, links, and more (powered by Tiptap/ProseMirror).
+- 💾 **Local-first storage** — everything is saved to a workspace folder you pick on your own computer (`workspace.json` + `attachments/` + `backups/`). No account, no external database, no telemetry.
+- 🌐 **LAN & optional global access** — open the same workspace from any device on your network, or, if you choose, expose it to the internet through a free Cloudflare Quick Tunnel with password protection.
+- 🗂️ **Pages & folders** — create, rename, move, favorite, soft-delete/restore pages and folders, with drag-and-drop and right-click context menus.
+- 🔍 **Search, Find & Replace** — sidebar search across titles/content, plus in-editor Ctrl+F / Ctrl+H with regex and whole-word options.
+- 📦 **Import/export** — JSON and ZIP backups, including attachments.
+- 🎨 **Dark theme by default** (JetBrains Mono), with a light theme option.
+- 🔒 **Security-conscious server** — path-traversal protection, attachment sandboxing, upload limits, CSP, session cookies, and a strict host allowlist for tunnel access.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| UI | React 19 + TypeScript |
+| Editor | Tiptap 3 / ProseMirror (tables, task lists, images, links, code blocks, text align, highlight, color…) |
+| Build tool | Vite 8 |
+| Local database (legacy/migration only) | Dexie (IndexedDB) |
+| Backend | Plain Node.js `http` server (no framework) |
+| Backups/exports | JSZip |
+| Icons | lucide-react, simple-icons |
+| Linting | oxlint |
+
+No external UI framework, no state-management library, no AI integration — the project deliberately keeps its dependency footprint small.
+
+---
+
+## Getting Started
 
 ```bash
 npm install
 npm run dev
 ```
 
-This starts two things:
+This starts two processes together:
 
-1. A **workspace server** (`server/index.mjs`) that listens on `0.0.0.0:5173` and serves both the app and the `/api/*` endpoints
-2. A **Vite dev server** (internal only, `127.0.0.1:4173`) that the workspace server proxies to for live development
+1. **Workspace server** (`server/index.mjs`) — listens on `0.0.0.0:5173`, serves the app and all `/api/*` endpoints.
+2. **Vite dev server** (internal only, `127.0.0.1:4173`) — the workspace server proxies to it for live-reloading during development.
 
-Open the app from:
+Open the app:
 
-- this machine: `http://localhost:5173`
-- another device on the same LAN: `http://<server-ip>:5173` (the server prints its LAN URLs on startup)
+- On this machine: `http://localhost:5173`
+- From another device on the same LAN: `http://<server-ip>:5173` (the exact LAN URL is printed in the terminal on startup)
 
-To build for production:
+### Production build
 
 ```bash
 npm run build
 npm run preview
 ```
 
-`preview` serves the built app from `dist/` on the same `0.0.0.0:5173` server — no Vite involved.
+`preview` serves the built `dist/` output from the same `0.0.0.0:5173` server, with no Vite involved.
 
-## Networking
+### All scripts
 
-- The server always binds to `0.0.0.0` — never to `localhost` only — so it accepts connections through any of the machine's network interfaces.
-- The frontend uses **relative API paths** (`/api/workspace`, `/api/workspace/save`, `/api/attachments/...`). No hard-coded host/IP exists anywhere in the client, so the same app works identically via `http://localhost:5173` and `http://192.168.x.x:5173`.
-- The server prints every reachable URL (localhost + LAN IPs) at startup, so no IP has to be configured by hand.
-- The server port defaults to `5173`; set `PORT=xxxx npm run dev` if that port is busy.
+| Script | Purpose |
+|---|---|
+| `npm run dev` | Dev server (LAN only) |
+| `npm run dev:global` | Dev server + internet access via Cloudflare tunnel |
+| `npm run build` | Type-check and build for production |
+| `npm run preview` | Serve the production build (LAN only) |
+| `npm run preview:global` / `npm run start:global` | Serve the production build + internet access |
+| `npm run lint` | Run oxlint |
 
-### Firewall / VM notes
+---
 
-- **Windows**: if other PCs can't reach `http://<server-ip>:5173`, allow port `5173` (TCP) through Windows Defender Firewall (or allow Node.js through it when prompted).
-- **VM (VirtualBox/VMware/Hyper-V)**: use **Bridged** networking so the VM has its own LAN IP, or NAT with a port-forward for TCP `5173` → guest `5173`. The app itself does not care — it simply listens on `0.0.0.0:5173`.
+## How Storage Works
 
-## Global access (internet)
+The app is **not** tied to a browser or a browser database. On first launch you pick a workspace folder (via a native/in-app folder picker), and that folder becomes the single source of truth for every browser and device that connects to the server:
 
-The same running instance can optionally be reached from anywhere in the world through a secure **Cloudflare Quick Tunnel** (`cloudflared`) — free, no account, automatic HTTPS. The tunnel forwards to the app's local server only; nothing else on the machine is exposed, and all data stays on the host PC.
-
-Enable it:
-
-```bash
-npm run preview:global     # built app + global access (also: npm run start:global)
-npm run dev:global         # live-reload dev mode + global access
+```
+Selected Workspace Folder/
+├── workspace.json      ← all pages, folders, content, settings, metadata, ordering
+├── attachments/         ← images/files referenced from page content
+└── backups/             ← workspace-backup-*.json (auto, rotated)
 ```
 
-or by setting `GLOBAL_ACCESS=true` in the environment for either normal command. Normal startup (`npm run dev`, `npm run preview`) is completely unchanged and never opens a tunnel.
+- Opening the app in different browsers or devices and selecting the **same folder** shows the **same data** — the server is the single storage authority.
+- Saves are atomic: the server writes `workspace.tmp`, fsyncs it, then renames it over `workspace.json`; concurrent saves are serialized and revision-tracked.
+- Timestamped backups are written to `backups/` on a throttled interval (default every 5 minutes, newest 12 kept).
+- Images are uploaded to `attachments/` and referenced by filename, rather than being inlined as base64 in page content.
+- Non-image files (documents, code, ZIP archives) can also be attached via the toolbar or drag-and-drop; ZIPs are validated (path traversal / entry-count checks) but never extracted server-side.
+- A one-time **legacy import** path exists for anyone who used an earlier IndexedDB-only version of the app — `src/db/db.ts` reads that old browser data purely to migrate it into `workspace.json`.
 
-At startup the server prints all three access modes:
+---
 
-```text
+## Networking & Remote Access
+
+- The server always binds to `0.0.0.0`, not `localhost`, so it's reachable from other devices on the network by default.
+- The frontend only ever calls **relative** API paths (`/api/...`) — there is no hard-coded host or IP anywhere in the client, so the identical build works over `localhost` or a LAN IP.
+- The server prints every reachable URL (localhost + LAN IPs) at startup.
+- Default port is `5173`; override with `PORT=xxxx npm run dev` if it's busy.
+
+### Optional global (internet) access
+
+The same running instance can optionally be reached from anywhere via a **Cloudflare Quick Tunnel** — free, no account required, automatic HTTPS:
+
+```bash
+npm run dev:global        # live-reload + internet access
+npm run preview:global    # production build + internet access
+```
+
+(or set `GLOBAL_ACCESS=true` for either normal command). Regular `npm run dev` / `npm run preview` never open a tunnel.
+
+At startup, all three access modes are printed:
+
+```
 This machine:    http://localhost:5173
 Same LAN:        http://192.168.x.x:5173
 Global access:   https://random-words-1234.trycloudflare.com
 ```
 
-Remote visitors open the global URL and enter the printed **Access ID** as the password (loopback/this-machine users never need it). The URL is ephemeral: it changes every time the server restarts, and access ends automatically when the app or the host PC stops.
+Remote visitors must enter the printed **Access ID** as a password (local/loopback users never need it). The tunnel URL is ephemeral — it changes on every restart and stops working the moment the app or host machine stops.
 
-How it works:
+Security notes for global mode:
 
-- On first use, the official `cloudflared` binary is downloaded automatically from Cloudflare's GitHub releases into `.cloudflared/` inside the project (gitignored). If `cloudflared` is already on your `PATH` it is used directly.
-- Set `CLOUDFLARED_BIN=/path/to/cloudflared` to use a specific binary, or `PW_TUNNEL_AUTO_DOWNLOAD=0` to disable downloading entirely.
+- All traffic is end-to-end HTTPS via Cloudflare's edge — no router port-forwarding needed.
+- Every internet visitor is rate-limited individually and always required to enter the Access ID.
+- The tunnel hostname is dynamically added to the server's Host allowlist; unknown hosts still get a 403.
+- All other protections (path validation, attachment sandboxing, CSP, session cookies, upload limits) apply equally to remote visitors.
 
-Security model when global access is on:
+---
 
-- Traffic is end-to-end HTTPS via Cloudflare's edge; no router port-forwarding required.
-- Internet clients are authenticated per visitor: the server honors `CF-Connecting-IP`/`X-Forwarded-For` **only** from its own local tunnel process, so every internet visitor gets their own rate-limit bucket and always requires the Access ID (loopback trust cannot be reached through the tunnel).
-- With global access enabled, a longer 12-character Access ID is generated on each start.
-- The tunnel hostname is added to the server's Host allowlist at runtime; unknown hosts are still rejected with 403.
-- All existing protections (path validation, attachment sandboxing, CSP, session cookies, upload limits) apply unchanged to remote visitors.
+## Local-Only Features
 
-## How storage works
+Some capabilities only appear when the browser is talking to the server over `localhost` (loopback) rather than through the tunnel:
 
-The app is **not** tied to a browser. On first launch, pick a workspace folder (a native folder dialog — no typing paths). That folder becomes the single source of truth for every browser and every device that can reach the server:
+- **Open Folder…** — switch the active workspace to any folder on the host machine.
+- **New Workspace…** — create a brand-new (empty) workspace folder.
+- **Files…** — browse the current workspace's files, preview text files, and download any of them.
 
-```
-Selected Workspace Folder/
-├── workspace.json      ← all pages, folders, content, settings, metadata, ordering
-├── attachments/        ← images/files referenced from page content
-└── backups/            ← workspace-backup-*.json (auto, rotated)
-```
+These controls are hidden entirely for LAN/tunnel visitors, and the corresponding `/api/local/*` endpoints reject any request that isn't genuinely local.
 
-- Opening the app in Chrome, Edge, Firefox, etc. and choosing the **same folder** shows the **same data** — the server is the single storage authority; browsers never keep their own copy.
-- `workspace.json` holds the full state (same structure the app previously kept in IndexedDB). Saves are atomic: the server writes `workspace.tmp`, fsyncs it, then renames it over `workspace.json`. Concurrent save requests are serialized server-side, and each save is revision-tracked.
-- The server writes a timestamped `workspace-backup-*.json` into `backups/` on a throttled interval (default: every 5 minutes, keep the newest 12; tune with `PW_BACKUP_INTERVAL_MS` / `PW_MAX_BACKUPS`).
-- Images added in the editor are uploaded to `attachments/` and referenced by file name; large base64 blobs no longer bloat page content.
-- File attachments (documents, code, text, ZIP archives) are uploaded to `attachments/` via the **Attach file** toolbar button or by drag-and-drop (non-image files). They are stored as-is: ZIP archives are never extracted server-side, only validated (entry names are checked for path traversal, absolute paths and null bytes, and an entry-count cap is enforced).
-- Local mode (browsing from the same machine) adds an **Open Folder / New Workspace / Files** browser: open any existing directory on the host as a workspace, or create a new one with a name prompt. The **Files…** dialog lets you browse the current workspace's folders, preview text files, and download any file (opened via the native host app).
-- Existing data from the previous IndexedDB version is **not deleted**. If you open a new folder while old browser data exists, the app offers to import it into `workspace.json`; skipping leaves the browser data untouched.
-- Legacy IndexedDB reads live in `src/db/db.ts` and are only used for that one-time import.
-- The server only ever touches the currently selected workspace folder — there are no arbitrary read/write endpoints, and attachment names are strictly validated (no path traversal).
+---
 
-## What's implemented
+## Editor Features
 
-- **Editor**: H1–H6, bold/italic/underline/strike/overline, inline code, code blocks, highlight, text color, font size, alignment, bullet/numbered/task lists (nested), Tab/Shift+Tab indent (works in lists and paragraphs), tables (insert/add/delete row & column/merge/split), images (paste, drag-drop, stored in the workspace `attachments/` folder), links, horizontal divider, undo/redo.
-- **Find (Ctrl+F)** and **Find & Replace (Ctrl+H)** with match count, next/prev, match case, whole word, and regex options.
-- **Autosave** to `workspace.json` with a debounce and a Saving…/Saved ✓/Save failed indicator. Ctrl+S forces an immediate save.
-- **Pages & folders**: create, rename, duplicate, move (drag-and-drop or context menu), favorite, soft-delete to Trash, restore, permanently delete. Right-click context menus on pages and folders.
-- **Search**: sidebar search matches page titles and body text; results open directly.
-- **Import/export**: JSON and ZIP backups (Settings → Export Backup, or Import via Ctrl+O). ZIP exports include the `attachments/` files; JSON exports inline image references as data URIs. Imports restore into the current workspace.
-- **Welcome screen** with workspace-folder picking, reopen-last-workspace, and one-time browser-data import.
-- **Local mode** (loopback access only, i.e. `http://localhost:5173`): **Open Folder…** swaps the workspace to any directory picked via the native dialog, **New Workspace…** creates a new (empty) directory and opens it, and the **Files…** dialog browses the current workspace's files with text previews and downloads. These controls never appear for remote/tunnel visitors.
-- **Keyboard shortcuts**: Ctrl+S, Ctrl+O, Ctrl+N, Ctrl+F, Ctrl+H, Ctrl+B/I/U, Tab/Shift+Tab, standard Ctrl+C/X/V/Z/Y (native).
-- **Dark theme** (JetBrains Mono throughout) with a Light option in Settings.
-- **Right panel**: word/character count, created/modified dates, document outline generated from headings.
+- Headings H1–H6; bold, italic, underline, strikethrough, overline; inline code and code blocks; highlight; text color; font size; text alignment.
+- Bullet, numbered, and task lists (with nesting); Tab / Shift+Tab indentation in both lists and paragraphs.
+- Tables — insert/delete rows and columns, merge/split cells.
+- Images (paste, drag-and-drop — stored in `attachments/`), links, horizontal dividers.
+- Undo/redo and standard clipboard shortcuts.
+- **Find** (Ctrl+F) and **Find & Replace** (Ctrl+H) with match count, next/previous navigation, match-case, whole-word, and regex options.
+- **Autosave** with debounce and a Saving… / Saved ✓ / Save failed status indicator; Ctrl+S forces an immediate save.
+- **Right panel**: live word/character count, created/modified timestamps, and a document outline auto-generated from headings (click to jump).
 
-## Local mode (Open/New/attach) & limits
+## Organization & Data Management
 
-**Local mode** means the browser is talking to the server over the loopback interface, not through the Cloudflare tunnel. Decisions:
+- Pages and folders: create, rename, duplicate, drag-and-drop or context-menu move, favorite, soft-delete to Trash, restore, and permanently delete.
+- Sidebar **search** across page titles and body text.
+- **Import/export**: JSON and ZIP backups (Settings → Export Backup, or Import via Ctrl+O). ZIP exports include attachments; JSON exports inline images as data URIs.
 
-- A request is local when its IP is a loopback address **and** it did not come via the tunnel. Local-only endpoints (`/api/local/*`) return `403 'Local mode only.'` to anything else.
-- The frontend learns it is local from `GET /api/workspace/status` (`isLocal`) and only shows the Open Folder / New Workspace / Files controls in that case.
+---
 
-Attachment & local limits are configurable via env vars (all defaults safe, conservative):
+## Configuration
+
+All limits are environment-configurable, with conservative defaults:
 
 | Env var | Default | Meaning |
-| --- | --- | --- |
-| `PW_MAX_FILE_BYTES` | `10MB` | Max size for a single non-image attachment file |
+|---|---|---|
+| `PORT` | `5173` | Server port |
+| `PW_MAX_FILE_BYTES` | `10MB` | Max size for a single non-image attachment |
 | `PW_MAX_ZIP_BYTES` | `25MB` | Max size for a single ZIP attachment |
-| `PW_MAX_ATTACHMENTS_PER_REQUEST` | `5` | Max files in one batch upload |
+| `PW_MAX_ATTACHMENTS_PER_REQUEST` | `5` | Max files per batch upload |
 | `PW_MAX_TOTAL_BYTES_PER_REQUEST` | `30MB` | Max combined size of a batch upload |
-| `PW_MAX_ZIP_ENTRIES` | `10000` | Max entries a ZIP may contain (validated, never extracted) |
-| `PW_TMP_MAX_AGE_MS` | `10 min` | How long attachment temp files may live before swept |
-| `PW_WORKSPACE_PATH` | — | Set to a path to skip the native folder picker for local Open (useful in headless tests) |
+| `PW_MAX_ZIP_ENTRIES` | `10000` | Max entries a ZIP may contain |
+| `PW_TMP_MAX_AGE_MS` | `10 min` | Lifetime of temp attachment files before cleanup |
+| `PW_BACKUP_INTERVAL_MS` | `5 min` | How often automatic backups are written |
+| `PW_MAX_BACKUPS` | `12` | Number of rotated backups to keep |
+| `PW_WORKSPACE_PATH` | — | Skip the folder picker and open this path directly (useful for headless/testing) |
+| `GLOBAL_ACCESS` | `false` | Enable the Cloudflare tunnel without using the `:global` scripts |
+| `CLOUDFLARED_BIN` | — | Use a specific local `cloudflared` binary |
+| `PW_TUNNEL_AUTO_DOWNLOAD` | `1` | Set to `0` to disable auto-downloading `cloudflared` |
 
-The batch attachments endpoint is `POST /api/attachments/upload` (multipart field `files`). The older single `POST /api/attachments` is now image-only. Current limits are exposed to the client at `GET /api/workspace/limits`.
+Current effective limits are also exposed to the client at `GET /api/workspace/limits`.
 
-## Project structure
+---
+
+## Project Structure
 
 ```
-server/          local Node.js server: folder picker, static frontend, workspace.json I/O, attachments, backups
+server/          Node.js server: folder picker, static frontend, workspace.json I/O,
+                 attachments, backups, Cloudflare tunnel integration
 scripts/         dev/preview launchers (workspace server + internal Vite)
 src/
-  components/     Sidebar, RightPanel, Welcome, BackupDialog, Settings, ContextMenu, ConfirmDialog, MigrationDialog
-  editor/         Tiptap wiring: Editor.tsx, Toolbar.tsx, FindBar.tsx, extensions/
-  store/          in-memory workspace store (pub/sub + debounced atomic saves)
-  db/             legacy IndexedDB schema + CRUD helpers (migration source only)
-  services/       api.ts (server client), backup.ts (export/import), migrate.ts (browser-data import)
-  utils/          docText.ts (plain-text extraction for search)
+  components/    Sidebar, RightPanel, Welcome, BackupDialog, Settings, ContextMenu,
+                 ConfirmDialog, MigrationDialog, FolderPickerModal
+  editor/        Tiptap wiring — Editor.tsx, Toolbar.tsx, FindBar.tsx, attachments,
+                 paste sanitization
+  store/         In-memory workspace store (pub/sub + debounced atomic saves)
+  db/            Legacy IndexedDB schema + CRUD helpers (used only for one-time migration)
+  services/      api.ts (server client), backup.ts (export/import), migrate.ts
+  utils/         docText.ts (plain-text extraction for search)
+  types.ts       Shared TypeScript types (Page, Folder, Setting, etc.)
+public/          Static assets (favicon, icon sprite)
 ```
 
-## Notes
+---
 
-- The workspace server listens on `0.0.0.0:5173`. Nothing is exposed to the internet unless your network/firewall is configured to do so.
-- If the port is busy, the server exits with a message; set a different one with `PORT=xxxx npm run dev`.
-- On Linux the folder picker uses `zenity` (GTK) or `kdialog` (KDE); macOS uses `osascript`; Windows uses PowerShell.
+## Notes & Caveats
+
+- Nothing is exposed to the internet unless you explicitly run one of the `:global` commands (or set `GLOBAL_ACCESS=true`) — normal `dev`/`preview` stay LAN-only.
+- If the default port is busy, the server exits with a clear message; set `PORT=xxxx` to use another one.
+- The native folder picker uses `zenity`/`kdialog` on Linux, `osascript` on macOS, and PowerShell on Windows.
+- This is a personal/self-hosted tool, not a multi-tenant SaaS product — there's a single shared workspace per running server instance, protected by an Access ID only when global access is enabled.
+
+---
+
+## License
+
+No license file is included in this project — add one (e.g. MIT) if you intend to share or open-source it.
