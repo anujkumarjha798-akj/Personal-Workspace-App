@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+
+# local workspace data (never commit real notes/attachments)
+workspace.json
+workspace.tmp
+attachments/
+backups/
+
+# tunnel binary (auto-downloaded)
+.cloudflared/
+
+# env / secrets
+.env
+.env.*
+
+# editor/OS junk
+.DS_Store
+*.log

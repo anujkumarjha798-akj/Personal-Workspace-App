@@ -1,0 +1,435 @@
+/* Diagram / whiteboard editor styles. Scoped under .dg-* classes; uses the
+   existing theme variables so dark/light themes work automatically. */
+
+/* ---- embedded preview inside the note ---- */
+.dg-embed-wrap {
+  margin: 10px 0;
+}
+
+.dg-embed {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.dg-embed:hover {
+  border-color: var(--border-strong);
+}
+
+.dg-preview {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  margin-inline: auto;
+  max-height: 500px;
+}
+
+.dg-embed-placeholder,
+.dg-embed-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  min-height: 90px;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+.dg-embed-error { color: #e2a24a; }
+
+.dg-edit-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  font-size: 11.5px;
+  font-family: inherit;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .12s ease, background .12s ease;
+}
+
+.dg-embed:hover .dg-edit-btn,
+.dg-embed:focus-within .dg-edit-btn { opacity: 1; }
+
+.dg-edit-btn:hover { color: var(--text); background: var(--bg-active); }
+
+/* ---- fullscreen editor overlay (toolbar stays visible) ---- */
+.dg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+.dg-overlay:focus,
+.dg-overlay:focus-visible {
+  outline: none;
+}
+
+.dg-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 10px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.dg-toolbar-spacer { flex: 1; }
+.dg-hint { color: var(--text-faint); font-size: 11.5px; margin-right: 8px; }
+
+.dg-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border-strong);
+  margin: 0 5px;
+  flex-shrink: 0;
+}
+
+.dg-shape-wrap { display: inline-flex; align-items: center; gap: 2px; }
+
+.dg-mini-select,
+.dg-select {
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 11px;
+  padding: 4px 2px;
+  cursor: pointer;
+  max-width: 170px;
+}
+
+.dg-mini-select:hover, .dg-mini-select:focus { background: var(--surface-hover); color: var(--text); outline: none; }
+
+/* custom dropdown (replaces native <select> popups) */
+.dg-dd { position: relative; display: inline-flex; }
+.dg-dd-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: inherit;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  padding: 5px 7px;
+}
+.dg-dd-trigger:hover { background: var(--surface-hover); color: var(--text); }
+.dg-dd-trigger.active { background: var(--bg-active); color: var(--accent-strong); }
+.dg-dd-label { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+.dg-dd-menu {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  min-width: 100%;
+  max-height: 300px;
+  overflow-y: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .42);
+  padding: 3px;
+  display: flex;
+  flex-direction: column;
+  z-index: 60;
+}
+.dg-dd-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dg-dd-option:hover { background: var(--bg-active); }
+.dg-dd-option.selected { color: var(--accent-strong); font-weight: 700; }
+
+/* ---- polish: animated selection, soft handles, snap pulse ---- */
+.dg-selection-outline {
+  animation: dg-dash-move 0.7s linear infinite;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.35));
+}
+
+@keyframes dg-dash-move {
+  to { stroke-dashoffset: -20; }
+}
+
+.dg-handle {
+  transition: fill 0.12s ease;
+}
+.dg-handle:hover {
+  fill: var(--accent-strong);
+}
+
+.dg-snap-pulse {
+  animation: dg-snap-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes dg-snap-pulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.95; }
+}
+
+.dg-zoom-label { color: var(--text-faint); font-size: 12px; min-width: 44px; text-align: center; }
+
+.dg-done {
+  border: 1px solid var(--border-strong) !important;
+  border-radius: 6px !important;
+  gap: 5px;
+}
+.dg-danger:hover { color: #e06c60 !important; }
+
+/* properties row */
+.dg-props {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 10px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  min-height: 34px;
+}
+
+.dg-prop {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 5px;
+  border-radius: 5px;
+  cursor: pointer;
+  position: relative;
+}
+.dg-prop:hover { background: var(--surface-hover); }
+.dg-prop input[type='color'] {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: none;
+  opacity: 0;
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+.dg-swatch {
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+  border: 1px solid var(--border-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--text);
+}
+.dg-swatch-fill { background-image: linear-gradient(45deg, var(--border) 25%, transparent 25%, transparent 75%, var(--border) 75%), linear-gradient(45deg, var(--border) 25%, transparent 25%, transparent 75%, var(--border) 75%); background-size: 8px 8px; background-position: 0 0, 4px 4px; }
+.dg-text-swatch { font-weight: 700; background: transparent; }
+
+/* canvas */
+.dg-canvas-wrap {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at top, rgba(255, 255, 255, 0.015), transparent 65%);
+}
+
+[data-theme='light'] .dg-canvas-wrap { background: var(--bg); }
+
+.dg-canvas {
+  position: absolute;
+  inset: 0;
+  user-select: none;
+}
+
+.dg-textarea {
+  position: absolute;
+  z-index: 20;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--accent-strong);
+  border-radius: 6px;
+  outline: none;
+  resize: none;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  line-height: 1.35;
+  padding: 4px 6px;
+  box-sizing: border-box;
+  overflow: hidden;
+  white-space: pre-wrap;
+  caret-color: var(--text);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.4);
+}
+
+/* While typing, the canvas cannot react at all — zero interference. */
+.dg-canvas.dg-editing {
+  pointer-events: none;
+}
+
+.dg-edit-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+}
+
+.dg-empty-hint {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 13px;
+  line-height: 1.7;
+  pointer-events: none;
+}
+
+/* context menu */
+.dg-menu {
+  position: fixed;
+  z-index: 1100;
+  min-width: 210px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .38);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.dg-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  padding: 6px 10px;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.dg-menu-item:hover:not(:disabled) { background: var(--bg-active); }
+.dg-menu-item:disabled { color: var(--text-faint); cursor: default; opacity: .55; }
+.dg-menu-kbd { color: var(--text-faint); font-size: 10.5px; }
+.dg-menu-sep { height: 1px; background: var(--border); margin: 4px 6px; }
+
+/* icon library panel */
+.dg-icon-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  width: 320px;
+  max-width: calc(100% - 24px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: -8px 0 30px rgba(0, 0, 0, .35);
+  z-index: 40;
+}
+
+.dg-icon-head {
+  display: flex;
+  gap: 6px;
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dg-icon-search {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 9px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+}
+.dg-icon-search:focus { border-color: var(--accent); }
+
+.dg-icon-grid {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+  gap: 4px;
+  padding: 10px;
+  align-content: start;
+}
+
+.dg-icon-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .1s ease, transform .1s ease;
+}
+.dg-icon-cell:hover { background: var(--bg-active); transform: translateY(-1px); }
+
+.dg-icon-status {
+  grid-column: 1 / -1;
+  color: var(--text-faint);
+  font-size: 12px;
+  padding: 18px 4px;
+  text-align: center;
+}
+
+/* ---- phone / tablet ---- */
+@media (pointer: coarse) {
+  .toolbar-btn { min-width: 36px; min-height: 36px; }
+  .dg-dd-trigger { padding: 8px 9px; }
+  .dg-prop { padding: 6px; }
+  .dg-prop input[type='color'] { width: 22px; height: 22px; }
+  .dg-menu-item { padding: 11px 12px; }
+  .icon-btn { width: 34px; height: 34px; }
+}
+
+@media (max-width: 760px) {
+  /* Hints waste precious space on small screens. */
+  .dg-hint { display: none; }
+  .dg-toolbar, .dg-props {
+    padding-left: calc(8px + env(safe-area-inset-left));
+    padding-right: calc(8px + env(safe-area-inset-right));
+    padding-top: calc(6px + env(safe-area-inset-top));
+  }
+  .dg-icon-panel {
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-width: none;
+  }
+}
